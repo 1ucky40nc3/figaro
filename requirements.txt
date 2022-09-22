@@ -8,3 +8,4 @@ torch==1.9.1
 torchtext==0.10.1
 transformers==4.10.2
 setuptools==59.5.0
+tensorflow
