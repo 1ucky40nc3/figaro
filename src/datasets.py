@@ -5,6 +5,7 @@ import pytorch_lightning as pl
 import math
 import os
 import pickle
+from functools import lru_cache
 
 from input_representation import InputRepresentation
 from vocab import RemiVocab, DescriptionVocab
@@ -410,6 +411,8 @@ class MidiDataset(IterableDataset):
     }
     return [token for token in desc if len(token.split('_')) == 0 or valid_keys[token.split('_')[0]]]
 
+
+  @lru_cache()
   def load_file(self, file):
     name = os.path.basename(file)
     if self.cache_path and self.use_cache:
@@ -451,6 +454,7 @@ class MidiDataset(IterableDataset):
     
     return sample
 
+  @lru_cache()
   def get_latent_representation(self, events, cache_key=None, bar_token_mask='<mask>'):
     if cache_key and self.use_cache:
       cache_file = os.path.join(self.latent_cache_path, cache_key)
