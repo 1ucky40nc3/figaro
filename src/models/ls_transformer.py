@@ -133,8 +133,8 @@ class LSTransformerDecoder(nn.Module):
         self.layer_norm = nn.LayerNorm(config.hidden_size)
 
         self.output_projection = QuantLinear(
-            self.embed_tokens.config.embedding_dim,
-            self.embed_tokens.config.vocab_size,
+            self.config.hidden_size,
+            self.config.vocab_size,
             bias=False,
         )
         del self.output_projection.weight
