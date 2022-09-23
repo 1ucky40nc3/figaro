@@ -160,6 +160,12 @@ def arguments():
     default=None,
     help='Number of workers for the data pipeline.'
   )
+  parser.add_argument(
+    '--lightseq',
+    action='store_true',
+    default=False,
+    help="Wether to use lightseq."
+  )
 
   return parser.parse_args()
 
@@ -173,6 +179,9 @@ def main():
   if device.type == 'cuda':
     N_WORKERS = min(N_WORKERS, 8*torch.cuda.device_count())
   N_WORKERS = int(N_WORKERS)
+
+  if args.lightseq:
+    from models.seq2seq_ls import LSSeq2SeqModule as Seq2SeqModule
 
   ### Define available models ###
   available_models = [
@@ -201,7 +210,6 @@ def main():
   if len(midi_files) == 0:
     print(f"WARNING: No MIDI files were found at '{args.root_dir}'. Did you download the dataset to the right location?")
     exit()
-
 
   MAX_CONTEXT = min(1024, args.context_size)
 
@@ -327,7 +335,7 @@ def main():
 
   trainer = pl.Trainer(
     gpus=0 if device.type == 'cpu' else torch.cuda.device_count(),
-    accelerator='dp',
+    accelerator='gpu',
     profiler='simple',
     callbacks=[checkpoint_callback, lr_monitor],
     max_epochs=args.epochs,
