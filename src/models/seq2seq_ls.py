@@ -36,7 +36,7 @@ class LSSeq2SeqModule(pl.LightningModule):
                d_latent=512,
                n_codes=512,
                n_groups=8,
-               context_size=512,
+               context_size=128,
                lr=1e-4,
                lr_schedule='sqrt_decay',
                warmup_steps=None,
@@ -49,7 +49,7 @@ class LSSeq2SeqModule(pl.LightningModule):
                description_options=None,
                use_pretrained_latent_embeddings=True,
                max_batch_tokens=4096,
-               max_seq_len=1024,
+               max_seq_len=128,
                padding_idx=0,
                local_rank=0):
     super(LSSeq2SeqModule, self).__init__()
