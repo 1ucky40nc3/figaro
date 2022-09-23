@@ -56,23 +56,23 @@ class LSTransformer(nn.Module):
 
         return Config(**kwargs)
 
-    def build_model(self, config):
+    def build_model(self, config, *args, **kwargs):
 
         self.encoder = self.build_encoder(config)
         self.decoder = self.build_decoder(config)
 
-    def build_encoder(self, config, embed_tokens):
-        return LSTransformerEncoder(config, embed_tokens)
+    def build_encoder(self, config):
+        return LSTransformerEncoder(config)
 
-    def build_decoder(self, config, embed_tokens):
-        return LSTransformerDecoder(config, embed_tokens)
+    def build_decoder(self, config):
+        return LSTransformerDecoder(config)
 
     def forward(self, src_tokens, trg_tokens):
         raise NotImplementedError("Call encoder and decoder individually.")
 
 
 class LSTransformerEncoder(nn.Module):
-    def __init__(self, config, embed_tokens):
+    def __init__(self, config, *args, **kwargs):
         super(LSTransformerEncoder, self).__init__()
         self.config = config
 
@@ -85,7 +85,7 @@ class LSTransformerEncoder(nn.Module):
 
         self.layer_norm = nn.LayerNorm(config.hidden_size)
 
-    def build_encoder_layer(self, config):
+    def build_encoder_layer(self, config, *args, **kwargs):
         enc_config = LSTransformerEncoderLayer.get_config(
             max_batch_tokens=config.max_batch_tokens,
             max_seq_len=config.max_seq_len,
@@ -119,7 +119,7 @@ class LSTransformerEncoder(nn.Module):
 
 
 class LSTransformerDecoder(nn.Module):
-    def __init__(self, config, embed_tokens):
+    def __init__(self, config, *args, **kwargs):
         super(LSTransformerDecoder, self).__init__()
         self.config = config
 
@@ -139,7 +139,7 @@ class LSTransformerDecoder(nn.Module):
         )
         del self.output_projection.weight
 
-    def build_decoder_layer(self, config):
+    def build_decoder_layer(self, config, *args, **kwargs):
         dec_config = LSTransformerDecoderLayer.get_config(
             max_batch_tokens=config.max_batch_tokens,
             max_seq_len=config.max_seq_len,
