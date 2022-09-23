@@ -9,7 +9,8 @@ from typing import Optional
 
 import pytorch_lightning as pl
 
-from models.seq2seq import Seq2SeqModule
+#from models.seq2seq import Seq2SeqModule
+from models.seq2seq_ls import LSSeq2SeqModule as Seq2SeqModule
 from models.vae import VqVaeModule
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,8 +43,8 @@ def arguments():
   )
   parser.add_argument(
     '--model',
-    type=Optional[str],
-    default=None,
+    type=str,
+    default="baseline",
     help='Name of the model.'
   )
   parser.add_argument(
@@ -156,8 +157,8 @@ def arguments():
   )
   parser.add_argument(
     '--n_workers',
-    type=Optional[int],
-    default=None,
+    type=int,
+    default=8,
     help='Number of workers for the data pipeline.'
   )
   parser.add_argument(
@@ -180,8 +181,6 @@ def main():
     N_WORKERS = min(N_WORKERS, 8*torch.cuda.device_count())
   N_WORKERS = int(N_WORKERS)
 
-  if args.lightseq:
-    from models.seq2seq_ls import LSSeq2SeqModule as Seq2SeqModule
 
   ### Define available models ###
   available_models = [
