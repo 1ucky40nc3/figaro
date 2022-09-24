@@ -185,7 +185,7 @@ class LSSeq2SeqModule(pl.LightningModule):
 
     if encoder_hidden_states is not None:
       # Make x_emb and encoder_hidden_states match in sequence length. Necessary for relative positional embeddings
-      padded = pad_sequence([x_emb.transpose(0, 1), encoder_hidden_states], batch_first=True)
+      padded = pad_sequence([x_emb.transpose(0, 1), encoder_hidden_states.transpose(0, 1)], batch_first=True)
       x_emb, encoder_hidden_states = padded.transpose(1, 2)
 
       out = self.transformer.decoder(
