@@ -160,7 +160,9 @@ class LSTransformerDecoder(nn.Module):
     def forward(self, inputs_embeds, encoder_hidden_states, cache=None, **kwargs):
         x = inputs_embeds
 
-        encoder_padding_mask = torch.zeros(*x.shape[:-1]).bool()
+        encoder_hidden_states = encoder_hidden_states.transpose(0, 1)
+        encoder_padding_mask = torch.zeros_like(encoder_hidden_states).transpose(0, 1).bool()
+
         if cache == {}:
             for i in range(self.num_layers):
                 cache[i] = {}
