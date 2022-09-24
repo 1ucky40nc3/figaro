@@ -136,7 +136,6 @@ class LSTransformerDecoder(nn.Module):
             self.config.vocab_size,
             bias=False,
         )
-        del self.output_projection.weight
 
     def build_decoder_layer(self, config, *args, **kwargs):
         dec_config = LSTransformerDecoderLayer.get_config(
@@ -178,14 +177,6 @@ class LSTransformerDecoder(nn.Module):
 
         x = self.layer_norm(x)
 
-        self.output_projection.weight = self.embed_tokens.para[
-            : self.embed_tokens.config.vocab_size
-            * self.embed_tokens.config.embedding_dim
-        ].view(
-            self.embed_tokens.config.vocab_size,
-            self.embed_tokens.config.embedding_dim,
-        )
-        self.output_projection.weight_quant._amax = self.embed_tokens.para[-1].data
         x = self.output_projection(x)
         return BaseModelOutput(
             last_hidden_state=x,
