@@ -10,7 +10,7 @@ from typing import Optional
 import pytorch_lightning as pl
 
 #from models.seq2seq import Seq2SeqModule
-from models.seq2seq_ls import LSSeq2SeqModule as Seq2SeqModule
+from models.ls_seq2seq import LSSeq2SeqModule as Seq2SeqModule
 from models.vae import VqVaeModule
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -93,7 +93,7 @@ def arguments():
     '--target_batch_size',
     type=int,
     default=512,
-    help='Wanted batch size. Reached by accumulating batches.'
+    help='Wanted batch size (reached by accumulating batches).'
   )
   parser.add_argument(
     '--epochs',
