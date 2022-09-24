@@ -110,7 +110,6 @@ class LSTransformerEncoder(nn.Module):
             x = layer(x, encoder_padding_mask)
 
         x = self.layer_norm(x)
-        x = x.transpose(0, 1)
 
         return BaseModelOutput(
             last_hidden_state=x,
