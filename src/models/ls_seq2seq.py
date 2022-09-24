@@ -247,6 +247,8 @@ class LSSeq2SeqModule(pl.LightningModule):
     labels = labels.reshape(-1)
     
     loss = self.loss_fn(pred, labels)
+    # lightseq returns (loss, nll_loss) - keep loss
+    loss = loss[0] if isinstance(loss, tuple) else loss
 
     if return_logits:
       return loss, logits
