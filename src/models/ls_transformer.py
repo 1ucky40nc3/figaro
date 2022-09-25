@@ -131,12 +131,6 @@ class LSTransformerDecoder(nn.Module):
 
         self.layer_norm = nn.LayerNorm(config.hidden_size)
 
-        self.output_projection = QuantLinear(
-            self.config.hidden_size,
-            self.config.vocab_size,
-            bias=False,
-        )
-
     def build_decoder_layer(self, config, *args, **kwargs):
         dec_config = LSTransformerDecoderLayer.get_config(
             max_batch_tokens=config.max_batch_tokens,
@@ -177,7 +171,6 @@ class LSTransformerDecoder(nn.Module):
 
         x = self.layer_norm(x)
 
-        x = self.output_projection(x)
         return BaseModelOutput(
             last_hidden_state=x,
             hidden_states=(x,)
