@@ -241,13 +241,12 @@ class LSSeq2SeqModule(pl.LightningModule):
       z, desc_bar_ids = None, None
 
     
+    # Shape of logits: (batch_size, tgt_len, vocab_size)
     logits = self(x, z=z, labels=labels, bar_ids=bar_ids, position_ids=position_ids, description_bar_ids=desc_bar_ids)
-    # Shape of logits: (batch_size, tgt_len, tuple_size, vocab_size)
-    pred = logits.view(-1, logits.shape[-1])
-    pred = pred.argmax(-1)
+    # Shape of logits: (batch_size,)
     labels = labels.reshape(-1)
     
-    loss = self.loss_fn(pred, labels)
+    loss = self.loss_fn(logits, labels)
     # lightseq returns (loss, nll_loss) - keep loss
     loss = loss[0] if isinstance(loss, tuple) else loss
 
