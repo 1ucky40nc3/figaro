@@ -42,7 +42,7 @@ def arguments():
   )
   parser.add_argument(
     '--model',
-    type=Optional[str],
+    type=str,
     default=None,
     help='Name of the model.'
   )
@@ -72,13 +72,13 @@ def arguments():
   )
   parser.add_argument(
     '--checkpoint',
-    type=Optional[str],
+    type=str,
     default=None,
     help='Path to a pre-trained seq2seq checkpoint.'
   )
   parser.add_argument(
     '--vae_checkpoint',
-    type=Optional[str],
+    type=str,
     default=None,
     help='Path to a pre-trained vq-vae checkpoint.'
   )
@@ -156,8 +156,8 @@ def arguments():
   )
   parser.add_argument(
     '--n_workers',
-    type=Optional[int],
-    default=None,
+    type=int,
+    default=4,
     help='Number of workers for the data pipeline.'
   )
   parser.add_argument(
