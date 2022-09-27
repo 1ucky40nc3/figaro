@@ -51,7 +51,8 @@ class LSSeq2SeqModule(pl.LightningModule):
                max_batch_tokens=4096,
                max_seq_len=1024,
                padding_idx=0,
-               local_rank=0):
+               local_rank=0,
+               fp16=False):
     super(LSSeq2SeqModule, self).__init__()
 
     self.description_flavor = description_flavor
@@ -69,6 +70,7 @@ class LSSeq2SeqModule(pl.LightningModule):
     self.lr_schedule = lr_schedule
     self.warmup_steps = warmup_steps
     self.max_steps = max_steps
+    self.fp16 = fp16
 
     self.vocab = RemiVocab()
 
@@ -83,7 +85,7 @@ class LSSeq2SeqModule(pl.LightningModule):
         nhead=num_attention_heads,
         num_encoder_layer=encoder_layers,
         num_decoder_layer=decoder_layers,
-        fp16=True,
+        fp16=fp16,
         local_rank=local_rank,
     )
     self.transformer = LSTransformer(config)
@@ -112,7 +114,7 @@ class LSSeq2SeqModule(pl.LightningModule):
         max_batch_tokens=max_batch_tokens,
         padding_idx=padding_idx,
         epsilon=0.0,
-        fp16=True,
+        fp16=fp16,
         local_rank=local_rank,
     )
     loss_fn = LSCrossEntropyLayer(ce_config)
