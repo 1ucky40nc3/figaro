@@ -253,6 +253,7 @@ def main():
       'lr': args.learning_rate,
       'warmup_steps': args.warmup_steps,
       'max_steps': args.max_steps,
+      "fp16": args.precision == 16
     }
     dec_kwargs = { **seq2seq_kwargs }
     dec_kwargs['encoder_layers'] = 0
