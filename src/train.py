@@ -180,9 +180,6 @@ def main():
     N_WORKERS = min(N_WORKERS, 8*torch.cuda.device_count())
   N_WORKERS = int(N_WORKERS)
 
-  if args.lightseq:
-    from models.seq2seq_ls import LSSeq2SeqModule as Seq2SeqModule
-
   ### Define available models ###
   available_models = [
     'vq-vae',
