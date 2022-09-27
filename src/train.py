@@ -144,18 +144,6 @@ def arguments():
     help='Precision (16 or 32).'
   )
   parser.add_argument(
-    '--amp_backend',
-    type=str,
-    default='apex',
-    help='AMP backend for training with pytorch-lightning.'
-  )
-  parser.add_argument(
-    '--amp_level',
-    type=str,
-    default='apex',
-    help='AMP level for pl trainer.'
-  )
-  parser.add_argument(
     '--n_workers',
     type=int,
     default=8,
