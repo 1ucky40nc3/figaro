@@ -18,7 +18,7 @@ from transformers import (
   EncoderDecoderModel
 )
 
-from ls_bert_encoder_decoder import inject_ls_layer
+from models.ls_bert_encoder_decoder import inject_ls_layer
 
 class GroupEmbedding(nn.Module):
   def __init__(self, n_tokens, n_groups, out_dim, inner_dim=128):
@@ -55,7 +55,7 @@ class LSSeq2SeqModule(pl.LightningModule):
                description_options=None,
                use_pretrained_latent_embeddings=True,
                fp16=False):
-    super(Seq2SeqModule, self).__init__()
+    super(LSSeq2SeqModule, self).__init__()
 
     self.description_flavor = description_flavor
     assert self.description_flavor in ['latent', 'description', 'none', 'both'], f"Unknown description flavor '{self.description_flavor}', expected one of ['latent', 'description', 'none', 'both]"
@@ -134,8 +134,8 @@ class LSSeq2SeqModule(pl.LightningModule):
         num_hidden_layers=encoder_layers,
       )
     )
-    self.transformer.decoder = inject_ls_layer(
-      self.transformer.decoder,
+    self.transformer.decoder.bert = inject_ls_layer(
+      self.transformer.decoder.bert,
       training_args=training_args,
       model_args=model_args,
       config=Config(
@@ -474,4 +474,3 @@ class LSSeq2SeqModule(pl.LightningModule):
       'bar_ids': bar_ids,
       'position_ids': position_ids
     }
-
