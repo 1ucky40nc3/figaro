@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import pytorch_lightning as pl
 import torch.optim
 import torch.nn as nn
@@ -10,9 +12,13 @@ from constants import PAD_TOKEN, EOS_TOKEN, BAR_KEY, POSITION_KEY
 
 
 import transformers
-from lightseq.training import LSCrossEntropyLayer, LSAdam
-from models.ls_transformer import LSTransformer
+from transformers import (
+  BertConfig,
+  EncoderDecoderConfig,
+  EncoderDecoderModel
+)
 
+from ls_bert_encoder_decoder import inject_ls_layer
 
 class GroupEmbedding(nn.Module):
   def __init__(self, n_tokens, n_groups, out_dim, inner_dim=128):
@@ -30,7 +36,7 @@ class GroupEmbedding(nn.Module):
     emb = self.embedding(x)
     return self.proj(emb.view(*shape[:-1], self.n_groups * self.inner_dim))
 
-class LSSeq2SeqModule(pl.LightningModule):
+class Seq2SeqModule(pl.LightningModule):
   def __init__(self,
                d_model=512,
                d_latent=512,
@@ -48,47 +54,94 @@ class LSSeq2SeqModule(pl.LightningModule):
                description_flavor='description',
                description_options=None,
                use_pretrained_latent_embeddings=True,
-               max_batch_tokens=4096,
-               max_seq_len=1024,
-               padding_idx=0,
-               local_rank=0,
                fp16=False):
-    super(LSSeq2SeqModule, self).__init__()
+    super(Seq2SeqModule, self).__init__()
 
     self.description_flavor = description_flavor
-    assert (
-      self.description_flavor in ['latent', 'description', 'none', 'both'], 
-      f"Unknown description flavor '{self.description_flavor}', expected one of ['latent', 'description', 'none', 'both]"
-    )
+    assert self.description_flavor in ['latent', 'description', 'none', 'both'], f"Unknown description flavor '{self.description_flavor}', expected one of ['latent', 'description', 'none', 'both]"
     self.description_options = description_options
 
     self.context_size = context_size
     self.d_model = d_model
     self.d_latent = d_latent
+    self.intermediate_size = intermediate_size
+    self.num_attention_heads = num_attention_heads
 
     self.lr = lr
     self.lr_schedule = lr_schedule
     self.warmup_steps = warmup_steps
     self.max_steps = max_steps
-    self.fp16 = fp16
 
     self.vocab = RemiVocab()
 
-    config = LSTransformer.get_config(
-        model="transformer-base",
-        max_batch_tokens=max_batch_tokens,
-        max_seq_len=max_seq_len,
-        vocab_size=1,
-        padding_idx=padding_idx,
-        hidden_size=self.d_model,
-        intermediate_size=intermediate_size,
-        nhead=num_attention_heads,
-        num_encoder_layer=encoder_layers,
-        num_decoder_layer=decoder_layers,
-        fp16=fp16,
-        local_rank=local_rank,
+    encoder_config = BertConfig(
+      vocab_size=1,
+      pad_token_id=0,
+      hidden_size=self.d_model,
+      num_hidden_layers=encoder_layers,
+      num_attention_heads=num_attention_heads,
+      intermediate_size=intermediate_size,
+      max_position_embeddings=1024,
+      position_embedding_type='relative_key_query'
     )
-    self.transformer = LSTransformer(config)
+    decoder_config = BertConfig(
+      vocab_size=1,
+      pad_token_id=0,
+      hidden_size=self.d_model,
+      num_hidden_layers=decoder_layers,
+      num_attention_heads=num_attention_heads,
+      intermediate_size=intermediate_size,
+      max_position_embeddings=1024,
+      position_embedding_type='relative_key_query'
+    )
+    config = EncoderDecoderConfig.from_encoder_decoder_configs(encoder_config, decoder_config)
+    self.transformer = EncoderDecoderModel(config)
+    self.transformer.config.decoder.is_decoder = True
+    self.transformer.config.decoder.add_cross_attention = True
+
+    @dataclass
+    class TrainingArguments:
+      fp16: bool
+      local_rank: int = 0
+
+    @dataclass
+    class ModelArguments:
+      module_type: int = 1
+      enable_quant: bool = False
+
+    @dataclass
+    class Config:
+      num_hidden_layers: int
+      vocab_size: int = 1
+      type_vocab_size: int = 2
+      pad_token_id: int = 0
+      max_position_embeddings: int = 1024
+      layer_norm_eps: float = 1e-12
+      hidden_dropout_prob: float = 0.1
+      attention_probs_dropout_prob: float = 0.1
+      hidden_size: int = self.d_model
+      intermediate_size: int = self.intermediate_size
+      num_attention_heads: int = self.num_attention_heads
+
+    training_args = TrainingArguments(fp16=fp16)
+    model_args = ModelArguments()
+
+    self.transformer.encoder = inject_ls_layer(
+      self.transformer.encoder,
+      training_args=training_args,
+      model_args=model_args,
+      config=Config(
+        num_hidden_layers=encoder_layers,
+      )
+    )
+    self.transformer.decoder = inject_ls_layer(
+      self.transformer.decoder,
+      training_args=training_args,
+      model_args=model_args,
+      config=Config(
+        num_hidden_layers=decoder_layers,
+      )
+    )
 
     self.max_bars = self.context_size
     self.max_positions = 512
@@ -110,17 +163,7 @@ class LSSeq2SeqModule(pl.LightningModule):
     self.in_layer = nn.Embedding(len(self.vocab), self.d_model)
     self.out_layer = nn.Linear(self.d_model, len(self.vocab), bias=False)
     
-    ce_config = LSCrossEntropyLayer.get_config(
-        max_batch_tokens=max_batch_tokens,
-        padding_idx=padding_idx,
-        epsilon=0.0,
-        fp16=fp16,
-        local_rank=local_rank,
-    )
-    loss_fn = LSCrossEntropyLayer(ce_config)
-    loss_fn.to(dtype=torch.half, device=torch.device("cuda:0"))
-
-    self.loss_fn = loss_fn
+    self.loss_fn = nn.CrossEntropyLoss(ignore_index=self.vocab.to_i(PAD_TOKEN))
         
     self.save_hyperparameters()
 
@@ -141,7 +184,7 @@ class LSSeq2SeqModule(pl.LightningModule):
       latent = z['latents']
       desc_emb = self.desc_in(desc)
       latent_emb = self.latent_in(latent)
-      print("emb shapes", desc_emb.transpose(0, 1).shape, latent_emb.transpose(0, 1).shape)
+      
       padded = pad_sequence([desc_emb.transpose(0, 1), latent_emb.transpose(0, 1)], batch_first=True)
       desc_emb, latent_emb = padded.transpose(1, 2)
 
@@ -243,14 +286,12 @@ class LSSeq2SeqModule(pl.LightningModule):
       z, desc_bar_ids = None, None
 
     
-    # Shape of logits: (batch_size, tgt_len, vocab_size)
     logits = self(x, z=z, labels=labels, bar_ids=bar_ids, position_ids=position_ids, description_bar_ids=desc_bar_ids)
-    # Shape of logits: (batch_size,)
+    # Shape of logits: (batch_size, tgt_len, tuple_size, vocab_size)
+    pred = logits.view(-1, logits.shape[-1])
     labels = labels.reshape(-1)
     
-    loss = self.loss_fn(logits, labels)
-    # lightseq returns (loss, nll_loss) - keep loss
-    loss = loss[0] if isinstance(loss, tuple) else loss
+    loss = self.loss_fn(pred, labels)
 
     if return_logits:
       return loss, logits
@@ -286,7 +327,7 @@ class LSSeq2SeqModule(pl.LightningModule):
         
   def configure_optimizers(self):
     # set LR to 1, scale with LambdaLR scheduler
-    optimizer = LSAdam(self.parameters(), lr=1, weight_decay=0.01)
+    optimizer = transformers.AdamW(self.parameters(), lr=1, weight_decay=0.01)
 
     if self.lr_schedule == 'sqrt_decay':
       # constant warmup, then 1/sqrt(n) decay starting from the initial LR
@@ -433,3 +474,4 @@ class LSSeq2SeqModule(pl.LightningModule):
       'bar_ids': bar_ids,
       'position_ids': position_ids
     }
+
