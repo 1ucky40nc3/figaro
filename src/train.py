@@ -9,8 +9,8 @@ from typing import Optional
 
 import pytorch_lightning as pl
 
-#from models.seq2seq import Seq2SeqModule
-from models.ls_seq2seq import LSSeq2SeqModule as Seq2SeqModule
+from models.seq2seq import Seq2SeqModule
+from models.ls_seq2seq import LSSeq2SeqModule
 from models.vae import VqVaeModule
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -214,19 +214,21 @@ def main():
 
   # load model from checkpoint if available
 
+  seq2seq_module = LSSeq2SeqModule if args.lightseq else Seq2SeqModule
+
   if args.checkpoint:
     model_class = {
       'vq-vae': VqVaeModule,
-      'figaro-learned': Seq2SeqModule,
-      'figaro-expert': Seq2SeqModule,
-      'figaro': Seq2SeqModule,
-      'figaro-inst': Seq2SeqModule,
-      'figaro-chord': Seq2SeqModule,
-      'figaro-meta': Seq2SeqModule,
-      'figaro-no-inst': Seq2SeqModule,
-      'figaro-no-chord': Seq2SeqModule,
-      'figaro-no-meta': Seq2SeqModule,
-      'baseline': Seq2SeqModule,
+      'figaro-learned': seq2seq_module,
+      'figaro-expert': seq2seq_module,
+      'figaro': seq2seq_module,
+      'figaro-inst': seq2seq_module,
+      'figaro-chord': seq2seq_module,
+      'figaro-meta': seq2seq_module,
+      'figaro-no-inst': seq2seq_module,
+      'figaro-no-chord': seq2seq_module,
+      'figaro-no-meta': seq2seq_module,
+      'baseline': seq2seq_module,
     }[args.model]
     model = model_class.load_from_checkpoint(checkpoint_path=args.checkpoint)
 
@@ -263,40 +265,40 @@ def main():
         d_model=args.d_model,
         d_latent=args.d_latent,
       ),
-      'figaro-learned': lambda: Seq2SeqModule(
+      'figaro-learned': lambda: seq2seq_module(
         description_flavor='latent',
         n_codes=vae_module.n_codes,
         n_groups=vae_module.n_groups,
         d_latent=vae_module.d_latent,
         **seq2seq_kwargs
       ),
-      'figaro': lambda: Seq2SeqModule(
+      'figaro': lambda: seq2seq_module(
         description_flavor='both',
         n_codes=vae_module.n_codes,
         n_groups=vae_module.n_groups,
         d_latent=vae_module.d_latent,
         **seq2seq_kwargs
       ),
-      'figaro-expert': lambda: Seq2SeqModule(
+      'figaro-expert': lambda: seq2seq_module(
         description_flavor='description',
         **seq2seq_kwargs
       ),
-      'figaro-no-meta': lambda: Seq2SeqModule(
+      'figaro-no-meta': lambda: seq2seq_module(
         description_flavor='description',
         description_options={ 'instruments': True, 'chords': True, 'meta': False },
         **seq2seq_kwargs
       ),
-      'figaro-no-inst': lambda: Seq2SeqModule(
+      'figaro-no-inst': lambda: seq2seq_module(
         description_flavor='description',
         description_options={ 'instruments': False, 'chords': True, 'meta': True },
         **seq2seq_kwargs
       ),
-      'figaro-no-chord': lambda: Seq2SeqModule(
+      'figaro-no-chord': lambda: seq2seq_module(
         description_flavor='description',
         description_options={ 'instruments': True, 'chords': False, 'meta': True },
         **seq2seq_kwargs
       ),
-      'baseline': lambda: Seq2SeqModule(
+      'baseline': lambda: seq2seq_module(
         description_flavor='none',
         **dec_kwargs
       ),

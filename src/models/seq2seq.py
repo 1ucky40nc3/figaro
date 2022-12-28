@@ -49,7 +49,8 @@ class Seq2SeqModule(pl.LightningModule):
                num_attention_heads=8,
                description_flavor='description',
                description_options=None,
-               use_pretrained_latent_embeddings=True):
+               use_pretrained_latent_embeddings=True,
+               **kwargs):
     super(Seq2SeqModule, self).__init__()
 
     self.description_flavor = description_flavor

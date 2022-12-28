@@ -36,7 +36,7 @@ class GroupEmbedding(nn.Module):
     emb = self.embedding(x)
     return self.proj(emb.view(*shape[:-1], self.n_groups * self.inner_dim))
 
-class Seq2SeqModule(pl.LightningModule):
+class LSSeq2SeqModule(pl.LightningModule):
   def __init__(self,
                d_model=512,
                d_latent=512,
