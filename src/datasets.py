@@ -1,11 +1,15 @@
+import os
+import math
+import pickle
+from functools import lru_cache
+
 import torch
 from torch.utils.data import DataLoader, IterableDataset
 from torch.nn.utils.rnn import pad_sequence
+
+from torchdata.datapipes.iter import IterDataPipe, Shuffler
+
 import pytorch_lightning as pl
-import math
-import os
-import pickle
-from functools import lru_cache
 
 from input_representation import InputRepresentation
 from vocab import RemiVocab, DescriptionVocab
@@ -72,7 +76,7 @@ class MidiDataModule(pl.LightningDataModule):
     )
 
     # Use a shuffled dataset only for training
-    self.train_ds = torch.utils.data.datapipes.iter.combinatorics.ShuffleIterDataPipe(self.train_ds, buffer_size=2048)
+    self.train_ds = Shuffler(self.train_ds, buffer_size=2048)
 
     self.collator = SeqCollator(pad_token=self.vocab.to_i(PAD_TOKEN), context_size=self.max_len)
 
