@@ -126,7 +126,7 @@ class LSSeq2SeqModule(pl.LightningModule):
     training_args = TrainingArguments(fp16=fp16)
     model_args = ModelArguments()
 
-    self.transformer.encoder = inject_ls_layer(
+    inject_ls_layer(
       self.transformer.encoder,
       training_args=training_args,
       model_args=model_args,
@@ -134,7 +134,7 @@ class LSSeq2SeqModule(pl.LightningModule):
         num_hidden_layers=encoder_layers,
       )
     )
-    self.transformer.decoder.bert = inject_ls_layer(
+    inject_ls_layer(
       self.transformer.decoder.bert,
       training_args=training_args,
       model_args=model_args,
