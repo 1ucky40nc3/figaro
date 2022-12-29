@@ -323,11 +323,13 @@ def main():
 
   lr_monitor = pl.callbacks.LearningRateMonitor(logging_interval='step')
 
+  stochastic_weight_averaging = pl.callbacks.StochasticWeightAveraging(swa_lrs=1e-2)
+
   trainer = pl.Trainer(
     gpus=0 if device.type == 'cpu' else torch.cuda.device_count(),
     accelerator='gpu',
     profiler='simple',
-    callbacks=[checkpoint_callback, lr_monitor],
+    callbacks=[checkpoint_callback, lr_monitor, stochastic_weight_averaging],
     max_epochs=args.epochs,
     max_steps=args.max_training_steps,
     log_every_n_steps=max(100, min(25*ACCUMULATE_GRADS, 200)),
@@ -337,9 +339,9 @@ def main():
     auto_scale_batch_size=False,
     auto_lr_find=False,
     accumulate_grad_batches=ACCUMULATE_GRADS,
-    stochastic_weight_avg=True,
+    #stochastic_weight_avg=True,
     gradient_clip_val=1.0, 
-    terminate_on_nan=True,
+    #terminate_on_nan=True,
     resume_from_checkpoint=args.checkpoint
   )
 
